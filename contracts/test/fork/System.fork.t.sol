@@ -81,6 +81,10 @@ contract SystemForkTest is Test, UnderfootDeployer {
             vm.stopPrank();
             vm.warp(d.ballot.epochEnd(d.ballot.currentEpoch()));
             _freshFeeds();
+            // markets are often closed when this runs: pin each feed to its pool so the test is
+            // about routing, not about today's drift (drift handling has its own tests)
+            _pinFeedToPool(0, true);
+            _pinFeedToPool(opt, true);
             assertEq(d.ballot.currentTarget(), opt);
 
             d.intake.fund{value: 0.002 ether}();
@@ -90,6 +94,8 @@ contract SystemForkTest is Test, UnderfootDeployer {
             assertEq(IERC20(d.floor.asset(opt)).balanceOf(address(d.floor)), targetOut);
 
             _buyUsdg(address(d.intake), 0.002 ether);
+            _pinFeedToPool(0, false);
+            _pinFeedToPool(opt, false);
             (, uint256 usdg) = d.intake.pending();
             (cashOut, targetOut) = d.intake.convert(false, usdg);
             assertGt(targetOut, 0, "target from usdg");
@@ -115,43 +121,106 @@ contract SystemForkTest is Test, UnderfootDeployer {
 
     // ------------------------------------------------- intake refusals
 
+    /// @notice Weekend: crypto feeds keep updating, Stock Token feeds don't. Nothing is bought.
     function test_fork_refusesWhenMarketsClosed() public {
         d.intake.fund{value: 0.01 ether}();
         vm.clearMockedCalls();
         vm.warp(block.timestamp + 27 hours);
-        vm.expectPartialRevert(OracleLib.StaleFeed.selector);
+        _mockFeed(Config.ETH_USD, int256(_price(Config.ETH_USD)));
+        _mockFeed(Config.USDG_USD, int256(_price(Config.USDG_USD)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Intake.NothingBuyable.selector, uint256(1), Intake.Skip.FeedUnusable, Intake.Skip.FeedUnusable
+            )
+        );
         d.intake.convert(true, 0.01 ether);
         (uint256 eth,) = d.intake.pending();
         assertEq(eth, 0.01 ether, "nothing moved");
     }
 
-    function test_fork_refusesPausedStockToken() public {
+    function test_fork_pausedTargetRoutesEverythingToCashLeg() public {
         d.intake.fund{value: 0.01 ether}();
         vm.mockCall(Config.SPY, abi.encodeCall(IStockToken.paused, ()), abi.encode(true));
-        vm.expectRevert(abi.encodeWithSelector(Intake.StockPaused.selector, Config.SPY));
-        d.intake.convert(true, 0.01 ether);
+        vm.expectEmit(true, false, false, true, address(d.intake));
+        emit Intake.LegSkipped(1, Intake.Skip.Paused);
+        (uint256 cashOut, uint256 targetOut) = d.intake.convert(true, 0.01 ether);
+        assertEq(targetOut, 0);
+        uint256 cashUsd = cashOut * _price(Config.SGOV_USD) / 1e18;
+        uint256 inUsd = 0.01 ether * _price(Config.ETH_USD) / 1e18;
+        assertApproxEqRel(cashUsd, inUsd, 0.015e18, "the whole amount went to the cash leg");
     }
 
-    function test_fork_refusesPausedOracle() public {
+    function test_fork_pausedCashOracleRoutesEverythingToTarget() public {
         d.intake.fund{value: 0.01 ether}();
         vm.mockCall(Config.SGOV, abi.encodeCall(IStockToken.oraclePaused, ()), abi.encode(true));
-        vm.expectRevert(abi.encodeWithSelector(Intake.StockPaused.selector, Config.SGOV));
-        d.intake.convert(true, 0.01 ether);
+        (uint256 cashOut, uint256 targetOut) = d.intake.convert(true, 0.01 ether);
+        assertEq(cashOut, 0);
+        assertGt(targetOut, 0);
     }
 
-    function test_fork_refusesWhenPoolDriftsPastBand() public {
+    function test_fork_brokenCashFeedDoesNotStrandInflows() public {
         d.intake.fund{value: 0.01 ether}();
-        // Chainlink now says SPY is 5% cheaper than the pool: buying at the pool would overpay
+        vm.mockCallRevert(Config.SGOV_USD, abi.encodeCall(IAggregatorV3.latestRoundData, ()), "retired");
+        (uint256 cashOut, uint256 targetOut) = d.intake.convert(true, 0.01 ether);
+        assertEq(cashOut, 0);
+        assertGt(targetOut, 0);
+    }
+
+    /// @notice Chainlink and the pool disagree by 5%: that leg is skipped, never traded at a bad price.
+    function test_fork_offPricePoolIsSkipped() public {
+        d.intake.fund{value: 0.01 ether}();
         (, int256 answer,,,) = IAggregatorV3(Config.SPY_USD).latestRoundData();
         _mockFeed(Config.SPY_USD, answer * 95 / 100);
-        vm.expectRevert();
+        vm.expectEmit(true, false, false, true, address(d.intake));
+        emit Intake.LegSkipped(1, Intake.Skip.PoolOffPrice);
+        (uint256 cashOut, uint256 targetOut) = d.intake.convert(true, 0.01 ether);
+        assertEq(targetOut, 0);
+        assertGt(cashOut, 0);
+    }
+
+    /// @notice A pool pushed in the same transaction is refused before anything trades.
+    function test_fork_sandwichPushIsRefused() public {
+        d.intake.fund{value: 0.1 ether}();
+        _pinFeedToPool(0, true);
+        _pinFeedToPool(1, true);
+        assertEq(uint8(d.intake.check(1, true)), uint8(Intake.Skip.None), "on-price before the push");
+        // push SPY/WETH by buying SPY until the pool leaves the band, then try to convert into it
+        for (uint256 k; k < 40 && d.intake.check(1, true) == Intake.Skip.None; ++k) {
+            _buySpy(address(this), 5 ether);
+        }
+        uint256 spot = d.intake.spotRate(1, true);
+        assertEq(uint8(d.intake.check(1, true)), uint8(Intake.Skip.PoolOffPrice), "pushed pool is off-price");
+        (uint256 cashOut, uint256 targetOut) = d.intake.convert(true, 0.1 ether);
+        assertEq(targetOut, 0, "nothing bought into the pushed pool");
+        assertGt(cashOut, 0);
+        assertEq(d.intake.spotRate(1, true), spot, "SPY pool untouched by the floor");
+    }
+
+    function test_fork_bothLegsOffPriceRefusesEverything() public {
+        d.intake.fund{value: 0.01 ether}();
+        (, int256 spy,,,) = IAggregatorV3(Config.SPY_USD).latestRoundData();
+        (, int256 sgov,,,) = IAggregatorV3(Config.SGOV_USD).latestRoundData();
+        _mockFeed(Config.SPY_USD, spy * 95 / 100);
+        _mockFeed(Config.SGOV_USD, sgov * 95 / 100);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Intake.NothingBuyable.selector, uint256(1), Intake.Skip.PoolOffPrice, Intake.Skip.PoolOffPrice
+            )
+        );
         d.intake.convert(true, 0.01 ether);
     }
 
-    function test_fork_refusesOutsideSizeLimits() public {
+    function test_fork_hourlyWindowCapsConversions() public {
         d.intake.fund{value: 1 ether}();
-        vm.expectPartialRevert(Intake.OutsideLimits.selector);
-        d.intake.convert(true, 1 ether); // > $500
+        uint256 ethUsd = _price(Config.ETH_USD);
+        uint256 chunk = 400e8 * 1e18 / ethUsd; // $400
+        d.intake.convert(true, chunk);
+        d.intake.convert(true, chunk);
+        vm.expectPartialRevert(Intake.WindowFull.selector);
+        d.intake.convert(true, chunk); // $1,200 in one hour
+        vm.warp(block.timestamp + 1 hours);
+        _freshFeeds();
+        d.intake.convert(true, chunk);
         vm.expectPartialRevert(Intake.OutsideLimits.selector);
         d.intake.convert(true, 0.0001 ether); // < $1
     }
@@ -280,6 +349,15 @@ contract SystemForkTest is Test, UnderfootDeployer {
     function _price(address feed) internal view returns (uint256 p) {
         (, int256 a,,,) = IAggregatorV3(feed).latestRoundData();
         p = uint256(a);
+    }
+
+    /// @dev Set asset i's feed to the price its route's pools imply right now.
+    function _pinFeedToPool(uint256 i, bool fromEth) internal {
+        (, address[] memory feeds) = Config.basket();
+        uint256 inPrice = _price(fromEth ? Config.ETH_USD : Config.USDG_USD);
+        uint256 unit = fromEth ? 1e18 : 1e6;
+        uint256 spot = d.intake.spotRate(i, fromEth);
+        _mockFeed(feeds[i], int256(inPrice * 1e18 * 1e18 / (unit * spot)));
     }
 
     function _mockFeed(address feed, int256 answer) internal {

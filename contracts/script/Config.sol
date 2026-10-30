@@ -12,6 +12,7 @@ library Config {
     address internal constant WETH = 0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73;
 
     // Uniswap
+    address internal constant V3_FACTORY = 0x1f7d7550B1b028f7571E69A784071F0205FD2EfA;
     address internal constant SWAP_ROUTER_02 = 0xCaf681a66D020601342297493863E78C959E5cb2;
     address internal constant POOL_MANAGER = 0x8366a39CC670B4001A1121B8F6A443A643e40951;
     address internal constant POSITION_MANAGER = 0x58daec3116aae6D93017bAAea7749052E8a04fA7;
@@ -53,7 +54,7 @@ library Config {
     address internal constant META_USD = 0x7C38C00C30BEe9378381E7B6135d7283356D71b1;
 
     uint256 internal constant DEFAULT_OPTION = 1; // SPY
-    uint256 internal constant MAX_USD_PER_CONVERT = 500e8; // $500
+    uint256 internal constant MAX_USD_PER_WINDOW = 1_000e8; // $1,000 per hour
     uint256 internal constant PAYMASTER_MIN_BURN = 100e18; // 100 WIF per sponsored operation
     uint256 internal constant PAYMASTER_MAX_COST = 0.001 ether;
 

@@ -11,6 +11,7 @@ import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 import {IAggregatorV3} from "../src/interfaces/IAggregatorV3.sol";
 import {IBurnableToken} from "../src/interfaces/IBurnableToken.sol";
 import {ISwapRouter02} from "../src/interfaces/ISwapRouter02.sol";
+import {IUniswapV3Factory} from "../src/interfaces/IUniswapV3.sol";
 import {IWETH} from "../src/interfaces/IWETH.sol";
 import {Ballot} from "../src/Ballot.sol";
 import {Intake} from "../src/Intake.sol";
@@ -19,6 +20,10 @@ import {UnderfootHook} from "../src/UnderfootHook.sol";
 import {UnderfootLens, IStateView} from "../src/UnderfootLens.sol";
 import {UnderfootPaymaster} from "../src/UnderfootPaymaster.sol";
 import {Config} from "./Config.sol";
+
+interface IArbSys {
+    function arbBlockNumber() external view returns (uint256);
+}
 
 struct Deployment {
     Underfoot floor;
@@ -47,9 +52,10 @@ abstract contract UnderfootDeployer {
             IWETH(Config.WETH),
             IERC20(Config.USDG),
             ISwapRouter02(Config.SWAP_ROUTER_02),
+            IUniswapV3Factory(Config.V3_FACTORY),
             IAggregatorV3(Config.ETH_USD),
             IAggregatorV3(Config.USDG_USD),
-            Config.MAX_USD_PER_CONVERT,
+            Config.MAX_USD_PER_WINDOW,
             Config.routes()
         );
 
@@ -86,7 +92,8 @@ contract Deploy is Script, UnderfootDeployer {
 
         string memory o = "deployment";
         vm.serializeUint(o, "chainId", block.chainid);
-        vm.serializeUint(o, "block", block.number);
+        // block.number is the parent-chain block on Arbitrum chains; ArbSys has the chain's own
+        vm.serializeUint(o, "block", IArbSys(address(100)).arbBlockNumber());
         vm.serializeAddress(o, "floor", address(d.floor));
         vm.serializeAddress(o, "ballot", address(d.ballot));
         vm.serializeAddress(o, "intake", address(d.intake));
@@ -94,7 +101,7 @@ contract Deploy is Script, UnderfootDeployer {
         vm.serializeAddress(o, "paymaster", address(d.paymaster));
         vm.serializeAddress(o, "sponsor", sponsor);
         string memory json = vm.serializeAddress(o, "lens", address(d.lens));
-        vm.writeJson(json, string.concat("./deployments/", vm.toString(block.chainid), ".json"));
+        vm.writeJson(json, vm.envOr("DEPLOY_OUT", string.concat("./deployments/", vm.toString(block.chainid), ".json")));
 
         console2.log("floor    ", address(d.floor));
         console2.log("ballot   ", address(d.ballot));
