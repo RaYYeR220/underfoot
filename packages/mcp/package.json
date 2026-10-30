@@ -1,0 +1,35 @@
+{
+  "name": "@underfoot/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the Underfoot floor: read the basket under $WIF, quote redemptions, and build unsigned redeem/vote/fund calls.",
+  "type": "module",
+  "bin": {
+    "underfoot-mcp": "./dist/stdio.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/server.ts src/stdio.ts --format esm --dts --clean",
+    "start": "node dist/stdio.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@underfoot/sdk": "workspace:*",
+    "viem": "^2.21.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}
