@@ -16,7 +16,7 @@ import {IBurnableToken} from "./interfaces/IBurnableToken.sol";
 ///
 ///     out_i = balance_i * burned / circulating * (1 - EXIT_FEE)
 ///
-/// where `circulating = WIF.totalSupply() - WIF.balanceOf(DEAD)`. The exit fee stays behind, so
+/// where `circulating` is WIF's total supply minus what sits at the dead address or here. The exit fee stays behind, so
 /// the backing per circulating WIF of every asset can only go up — through redemptions, through
 /// inflows, and through every WIF burned anywhere else on the chain.
 ///
@@ -104,9 +104,10 @@ contract Underfoot is ReentrancyGuardTransient {
 
     // ----------------------------------------------------------------- views
 
-    /// @notice WIF that is still out there: total supply minus what sits at the dead address.
+    /// @notice WIF that is still out there: total supply minus what sits at the dead address or
+    ///         in this contract (WIF sent here by mistake can never move again).
     function circulatingSupply() public view returns (uint256) {
-        return WIF.totalSupply() - WIF.balanceOf(DEAD);
+        return WIF.totalSupply() - WIF.balanceOf(DEAD) - WIF.balanceOf(address(this));
     }
 
     /// @notice What `redeem(wifAmount, _, 0)` would pay right now.

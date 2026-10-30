@@ -145,6 +145,18 @@ contract UnderfootTest is Test {
         }
     }
 
+    function test_wifSentToTheFloorLeavesCirculation() public {
+        uint256 s0 = floor.circulatingSupply();
+        uint256[] memory before = _backing();
+        vm.prank(bob);
+        wif.transfer(address(floor), 1_000_000e18);
+        assertEq(floor.circulatingSupply(), s0 - 1_000_000e18);
+        uint256[] memory afterT = _backing();
+        for (uint256 i; i < before.length; ++i) {
+            assertGt(afterT[i], before[i]);
+        }
+    }
+
     // ------------------------------------------------------------ reverts
 
     function test_revertZeroAmount() public {

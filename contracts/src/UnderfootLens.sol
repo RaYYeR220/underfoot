@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -116,7 +117,7 @@ contract UnderfootLens {
         IStockToken t = IStockToken(FLOOR.asset(i));
         a.token = address(t);
         a.symbol = _symbol(address(t));
-        a.balance = t.balanceOf(address(FLOOR));
+        a.balance = _try(address(t), abi.encodeCall(IERC20.balanceOf, (address(FLOOR))));
         a.multiplier = _try(address(t), abi.encodeCall(IStockToken.uiMultiplier, ()));
         a.paused = _try(address(t), abi.encodeCall(IStockToken.paused, ())) != 0;
         a.oraclePaused = _try(address(t), abi.encodeCall(IStockToken.oraclePaused, ())) != 0;
