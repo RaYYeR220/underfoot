@@ -9,6 +9,7 @@ optimizer = true
 optimizer_runs = 20000
 via_ir = false
 bytecode_hash = "none"
+no_match_path = "test/fork/**"
 fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./script" }]
 
 [profile.default.fuzz]
@@ -32,3 +33,7 @@ robinhood_testnet = "https://rpc.testnet.chain.robinhood.com"
 
 [etherscan]
 robinhood = { key = "blockscout", url = "https://robinhoodchain.blockscout.com/api/", chain = 4663 }
+
+[profile.fork]
+match_path = "test/fork/**"
+no_match_path = "none"
