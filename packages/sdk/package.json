@@ -1,0 +1,31 @@
+{
+  "name": "@underfoot/sdk",
+  "version": "0.1.0",
+  "description": "Read and act on the Underfoot floor: a basket of Stock Tokens under every $WIF on Robinhood Chain.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "viem": "^2.21.0",
+    "vitest": "^2.1.8"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "underfoot",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "abi": "node scripts/abi.mjs",
+    "build": "pnpm -r --filter ./packages/** build",
+    "test": "pnpm -r test",
+    "contracts:test": "cd contracts && forge test",
+    "contracts:fork": "cd contracts && FOUNDRY_PROFILE=fork forge test",
+    "verify:onchain": "node scripts/verify-onchain.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
