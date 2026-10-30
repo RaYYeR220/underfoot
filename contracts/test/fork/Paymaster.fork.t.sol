@@ -145,6 +145,32 @@ contract PaymasterForkTest is Test, UnderfootDeployer {
         );
     }
 
+    /// @notice Calls that could never burn anything are refused at validation, not after.
+    function test_fork_impossibleBurnsAreRefused() public view {
+        bytes[4] memory bad = [
+            abi.encodeCall(Ballot.vote, (0, 500e18)), // cash leg is not an option
+            abi.encodeCall(Ballot.vote, (10, 500e18)), // out of range
+            abi.encodeCall(Underfoot.redeem, (0, alice, 0)), // nothing to burn
+            abi.encodeCall(Underfoot.redeem, (500e18, address(0), 0)) // nowhere to send
+        ];
+        address[4] memory targets = [address(d.ballot), address(d.ballot), address(d.floor), address(d.floor)];
+        for (uint256 i; i < 4; ++i) {
+            bytes memory cd = abi.encodeCall(BaseAccount.execute, (targets[i], 0, bad[i]));
+            try d.paymaster.burnedBy(cd) returns (uint256) {
+                revert("should have refused");
+            } catch (bytes memory err) {
+                assertEq(bytes4(err), UnderfootPaymaster.NotSponsored.selector);
+            }
+        }
+    }
+
+    function test_fork_anyoneCanAddPermanentStake() public {
+        d.paymaster.addStake{value: 0.01 ether}(1 days);
+        IEntryPoint.DepositInfo memory info = ep.getDepositInfo(address(d.paymaster));
+        assertTrue(info.staked);
+        assertEq(info.stake, 0.01 ether);
+    }
+
     // ------------------------------------------------------- helpers
 
     function _call(address target, bytes memory data) internal pure returns (BaseAccount.Call memory) {

@@ -21,14 +21,20 @@ import {Underfoot} from "./Underfoot.sol";
 /// A user operation is sponsored only if BOTH gates pass:
 ///   1. a sponsor signature over the exact operation (the app's server rate-limits and simulates
 ///      before it signs), and
-///   2. on-chain rules that hold even if the server signs something it shouldn't:
+///   2. on-chain rules that limit WHAT can ever be sponsored, even if the server signs something
+///      it shouldn't:
 ///        - the sender is an EIP-7702 account delegated to the canonical Simple7702Account;
 ///        - every call is one of: WIF.approve(floor|ballot, _), floor.redeem(_), ballot.vote(_);
 ///        - no call carries ETH;
 ///        - together the calls burn at least MIN_BURN WIF;
 ///        - the operation's max cost is under MAX_COST.
 ///
-/// There is no owner and no withdraw. ETH deposited here can only ever pay for floor actions.
+/// The rules bound what gets sponsored; they cannot promise the operation succeeds (a holder can
+/// still move their WIF away between signing and inclusion). The cost of that is one operation's
+/// gas, capped by MAX_COST and by the server's per-account limits.
+///
+/// There is no owner and no withdraw. ETH deposited here can only ever pay for floor actions, and
+/// anyone can add a permanent stake so bundlers give the paymaster staked-entity limits.
 contract UnderfootPaymaster is IPaymaster {
     uint256 private constant VALIDATION_GAS_OFFSET = UserOperationLib.PAYMASTER_VALIDATION_GAS_OFFSET;
     uint256 private constant DATA_OFFSET = UserOperationLib.PAYMASTER_DATA_OFFSET;
@@ -42,6 +48,8 @@ contract UnderfootPaymaster is IPaymaster {
     address public immutable BALLOT;
     uint256 public immutable MIN_BURN;
     uint256 public immutable MAX_COST;
+    uint256 public immutable OPTIONS;
+    uint256 public immutable MIN_VOTE;
 
     event Deposited(address indexed from, uint256 amount);
 
@@ -75,6 +83,8 @@ contract UnderfootPaymaster is IPaymaster {
         BALLOT = address(ballot);
         MIN_BURN = minBurn;
         MAX_COST = maxCost;
+        OPTIONS = ballot.OPTIONS();
+        MIN_VOTE = ballot.MIN_VOTE();
     }
 
     // ------------------------------------------------------------- funding
@@ -87,6 +97,12 @@ contract UnderfootPaymaster is IPaymaster {
 
     receive() external payable {
         deposit();
+    }
+
+    /// @notice Add to the paymaster's EntryPoint stake. There is no way to unlock it: the stake is
+    ///         permanent, which is the point — it only buys bundler reputation.
+    function addStake(uint32 unstakeDelaySec) external payable {
+        ENTRY_POINT.addStake{value: msg.value}(unstakeDelaySec);
     }
 
     function balance() external view returns (uint256) {
@@ -184,11 +200,13 @@ contract UnderfootPaymaster is IPaymaster {
             return 0;
         }
         if (target == FLOOR && sel == Underfoot.redeem.selector) {
-            (uint256 amount,,) = abi.decode(args, (uint256, address, uint256));
+            (uint256 amount, address to,) = abi.decode(args, (uint256, address, uint256));
+            if (amount == 0 || to == address(0)) revert NotSponsored(target, sel);
             return amount;
         }
         if (target == BALLOT && sel == Ballot.vote.selector) {
-            (, uint256 amount) = abi.decode(args, (uint256, uint256));
+            (uint256 option, uint256 amount) = abi.decode(args, (uint256, uint256));
+            if (option == 0 || option >= OPTIONS || amount < MIN_VOTE) revert NotSponsored(target, sel);
             return amount;
         }
         revert NotSponsored(target, sel);
