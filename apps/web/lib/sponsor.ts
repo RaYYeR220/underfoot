@@ -11,29 +11,51 @@ import {
 } from "viem/account-abstraction";
 
 import { requireAddresses } from "./config";
+import { allow } from "./ratelimit";
 import { serverClient } from "./server";
 
 /** Gas our validation needs: calldata decode, one ECDSA recover, one EXTCODECOPY. */
 const PM_VERIFICATION_GAS = 150_000n;
 const PM_POST_OP_GAS = 0n;
-const VALIDITY_SECONDS = 600;
+const VALIDITY_SECONDS = 120;
 /** A well-formed 65-byte signature for gas estimation; it recovers to some address, never the sponsor. */
 const STUB_SIGNATURE: Hex = `0x${"ff".repeat(64)}1b`;
-const DAILY_LIMIT = 25;
+const DAY = 86_400_000;
 
 export class SponsorRefusal extends Error {}
 
-const usage = new Map<string, { day: number; count: number }>();
-function takeQuota(sender: Address) {
-  const day = Math.floor(Date.now() / 86_400_000);
-  const key = sender.toLowerCase();
-  const u = usage.get(key);
-  if (!u || u.day !== day) {
-    usage.set(key, { day, count: 1 });
-    return;
-  }
-  if (u.count >= DAILY_LIMIT) throw new SponsorRefusal("daily sponsorship limit reached for this account");
-  u.count += 1;
+/** One live signature per (account, nonce): a second request for the same operation slot is refused. */
+const signed = new Map<string, number>();
+function takeQuota(sender: Address, nonce: bigint, ip: string) {
+  const slot = `${sender.toLowerCase()}:${nonce}`;
+  const prev = signed.get(slot);
+  if (prev && Date.now() - prev < VALIDITY_SECONDS * 1000) throw new SponsorRefusal("this operation was already sponsored");
+  if (!allow(`sponsor:acct:${sender.toLowerCase()}`, 20, DAY)) throw new SponsorRefusal("daily limit reached for this account");
+  if (!allow(`sponsor:ip:${ip}`, 40, DAY)) throw new SponsorRefusal("daily limit reached for this connection");
+  if (!allow("sponsor:all", 2_000, DAY)) throw new SponsorRefusal("sponsorship is paused for today");
+  signed.set(slot, Date.now());
+  if (signed.size > 20_000) signed.clear();
+}
+
+/** Ask the bundler to simulate the operation; refuse to sign anything that would revert. */
+async function simulate(rpcOp: RpcUserOperation<"0.8">, draft: UserOperation<"0.8">) {
+  const url = process.env.BUNDLER_URL;
+  if (!url) return;
+  const hex = (v: bigint) => `0x${v.toString(16)}`;
+  const op = {
+    ...rpcOp,
+    paymaster: draft.paymaster,
+    paymasterVerificationGasLimit: hex(draft.paymasterVerificationGasLimit ?? PM_VERIFICATION_GAS),
+    paymasterPostOpGasLimit: hex(draft.paymasterPostOpGasLimit ?? PM_POST_OP_GAS),
+    paymasterData: draft.paymasterData,
+  };
+  const res = (await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_estimateUserOperationGas", params: [op, ENTRY_POINT_V08] }),
+    cache: "no-store",
+  }).then((r) => r.json())) as { error?: { message?: string } };
+  if (res.error) throw new SponsorRefusal(`simulation failed: ${res.error.message ?? "reverted"}`);
 }
 
 function sponsorAccount() {
@@ -104,16 +126,17 @@ export async function stubData(rpcOp: RpcUserOperation<"0.8">, entryPoint: Addre
 }
 
 /** ERC-7677 pm_getPaymasterData */
-export async function finalData(rpcOp: RpcUserOperation<"0.8">, entryPoint: Address, chainId: Hex) {
+export async function finalData(rpcOp: RpcUserOperation<"0.8">, entryPoint: Address, chainId: Hex, ip: string) {
   checkContext(entryPoint, chainId);
   const { paymaster } = requireAddresses();
   const op = formatUserOperation(rpcOp) as UserOperation<"0.8">;
   await checkRules(op, paymaster);
-  takeQuota(op.sender);
 
   const { validUntil, validAfter } = validity();
   const prefix = timeData(validUntil, validAfter);
   const draft = withPaymaster(op, paymaster, `${prefix}${STUB_SIGNATURE.slice(2)}` as Hex);
+  await simulate(rpcOp, draft);
+  takeQuota(op.sender, op.nonce, ip);
   const hash = await serverClient.readContract({
     address: paymaster,
     abi: paymasterAbi,

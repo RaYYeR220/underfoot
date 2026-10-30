@@ -1,6 +1,7 @@
 import type { Address, Hex } from "viem";
 import type { RpcUserOperation } from "viem/account-abstraction";
 
+import { allow, clientIp } from "@/lib/ratelimit";
 import { jsonResponse, rpcError } from "@/lib/server";
 import { SponsorRefusal, finalData, stubData } from "@/lib/sponsor";
 
@@ -12,6 +13,8 @@ export const dynamic = "force-dynamic";
  * paymaster would accept anyway; the contract re-checks everything.
  */
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  if (!allow(`paymaster:${ip}`, 30, 60_000)) return rpcError(null, -32005, "rate limited");
   let body: { id?: unknown; method?: string; params?: unknown[] };
   try {
     body = await req.json();
@@ -27,7 +30,7 @@ export async function POST(req: Request) {
       return jsonResponse({ jsonrpc: "2.0", id, result: await stubData(op, entryPoint, chainId) });
     }
     if (method === "pm_getPaymasterData") {
-      return jsonResponse({ jsonrpc: "2.0", id, result: await finalData(op, entryPoint, chainId) });
+      return jsonResponse({ jsonrpc: "2.0", id, result: await finalData(op, entryPoint, chainId, ip) });
     }
     return rpcError(id, -32601, `method ${method} not supported`);
   } catch (e) {
