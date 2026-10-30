@@ -29,6 +29,11 @@ export const intakeAbi = [
         "internalType": "contract ISwapRouter02"
       },
       {
+        "name": "factory",
+        "type": "address",
+        "internalType": "contract IUniswapV3Factory"
+      },
+      {
         "name": "ethUsd",
         "type": "address",
         "internalType": "contract IAggregatorV3"
@@ -39,7 +44,7 @@ export const intakeAbi = [
         "internalType": "contract IAggregatorV3"
       },
       {
-        "name": "maxUsd",
+        "name": "maxUsdPerWindow",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -160,7 +165,7 @@ export const intakeAbi = [
   },
   {
     "type": "function",
-    "name": "MAX_USD",
+    "name": "MAX_USD_PER_WINDOW",
     "inputs": [],
     "outputs": [
       {
@@ -193,6 +198,19 @@ export const intakeAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract ISwapRouter02"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "SPOT_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -245,6 +263,43 @@ export const intakeAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract IBurnableToken"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "WINDOW",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "check",
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "fromEth",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "reason",
+        "type": "uint8",
+        "internalType": "enum Intake.Skip"
       }
     ],
     "stateMutability": "view"
@@ -305,6 +360,42 @@ export const intakeAbi = [
   },
   {
     "type": "function",
+    "name": "hops",
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "fromEth",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Intake.Hop[]",
+        "components": [
+          {
+            "name": "pool",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "zeroForOne",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "pending",
     "inputs": [],
     "outputs": [
@@ -315,6 +406,25 @@ export const intakeAbi = [
       },
       {
         "name": "usdg",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "readFeed",
+    "inputs": [
+      {
+        "name": "feed",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "price",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -347,10 +457,86 @@ export const intakeAbi = [
   },
   {
     "type": "function",
+    "name": "settleOne",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "spotRate",
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "fromEth",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "rate",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "sweep",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "windowRemaining",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "windowStart",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "windowUsd",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint192",
+        "internalType": "uint192"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "event",
@@ -453,6 +639,38 @@ export const intakeAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "LegSkipped",
+    "inputs": [
+      {
+        "name": "assetIndex",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum Intake.Skip"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettleFailed",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "BadAnswer",
     "inputs": [
@@ -470,6 +688,17 @@ export const intakeAbi = [
   },
   {
     "type": "error",
+    "name": "BadFeed",
+    "inputs": [
+      {
+        "name": "feed",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "BadRoute",
     "inputs": [
       {
@@ -478,6 +707,11 @@ export const intakeAbi = [
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "BallotMismatch",
+    "inputs": []
   },
   {
     "type": "error",
@@ -499,6 +733,32 @@ export const intakeAbi = [
     "type": "error",
     "name": "InsufficientBalance",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotSelf",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NothingBuyable",
+    "inputs": [
+      {
+        "name": "targetIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "targetReason",
+        "type": "uint8",
+        "internalType": "enum Intake.Skip"
+      },
+      {
+        "name": "cashReason",
+        "type": "uint8",
+        "internalType": "enum Intake.Skip"
+      }
+    ]
   },
   {
     "type": "error",
@@ -545,7 +805,7 @@ export const intakeAbi = [
   },
   {
     "type": "error",
-    "name": "StockPaused",
+    "name": "UnsupportedToken",
     "inputs": [
       {
         "name": "token",
@@ -556,12 +816,17 @@ export const intakeAbi = [
   },
   {
     "type": "error",
-    "name": "UnsupportedToken",
+    "name": "WindowFull",
     "inputs": [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        "name": "usedUsd",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limitUsd",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
