@@ -1,0 +1,34 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 20000
+via_ir = false
+bytecode_hash = "none"
+fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./script" }]
+
+[profile.default.fuzz]
+runs = 512
+
+[profile.default.invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+
+[profile.ci.fuzz]
+runs = 5000
+
+[profile.ci.invariant]
+runs = 1000
+depth = 128
+
+[rpc_endpoints]
+robinhood = "${ROBINHOOD_RPC_URL}"
+robinhood_testnet = "https://rpc.testnet.chain.robinhood.com"
+
+[etherscan]
+robinhood = { key = "blockscout", url = "https://robinhoodchain.blockscout.com/api/", chain = 4663 }

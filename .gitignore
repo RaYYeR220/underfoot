@@ -1,0 +1,45 @@
+# deps / build
+node_modules/
+.pnpm-store/
+dist/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# local / tooling
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vercel/
+*.log
+
+# working notes, never published
+BRIEF.md
+ALTERNATIVES.md
+NOTES.md
+RESUME.md
+STRATEGY*.md
+plans/
+specs/
+*-internal/
+*-backup*
+*.bundle
+scratch/
+ui-prototypes/
+mockups/
+design-ref/
+variants/
