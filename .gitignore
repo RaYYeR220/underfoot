@@ -43,3 +43,6 @@ ui-prototypes/
 mockups/
 design-ref/
 variants/
+
+# local fork deployments
+contracts/deployments/anvil.json
