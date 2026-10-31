@@ -6,7 +6,7 @@ Underfoot is a contract with no owner that holds a basket of Robinhood Chain Sto
 
 Most $WIF utilities burn the token and call it a flywheel. A burn makes WIF scarcer; it doesn't give anyone a reason to come back, and it works the same with any token. Underfoot makes WIF the only key to a growing basket of real assets, and turns every burn on the chain into backing for the holders who stay.
 
-- **Live app:** https://underfoot-brown.vercel.app · **MCP:** https://underfoot-brown.vercel.app/api/mcp
+- **Live app:** https://underfoot-brown.vercel.app · **Demo video (2 min):** https://youtu.be/XIffO1OwG0c · **MCP:** https://underfoot-brown.vercel.app/api/mcp
 - **Contracts (verified, no owner):** see [Deployment](#deployment)
 - **Review in five minutes:** [REVIEW.md](REVIEW.md) · **What we claim and how to check it:** [CLAIMS.md](CLAIMS.md) · **Self-review:** [AUDIT.md](AUDIT.md)
 
