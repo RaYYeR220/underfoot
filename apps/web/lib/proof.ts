@@ -96,5 +96,4 @@ export const MAINNET_TXS: ProofTx[] = [
   { label: "Buy WIF in the hook pool: 0.5% in WIF is burned", hash: "0x9010b64bca96f1df573c4ae1a758280fba5490a46b3a3ec05bd2f1503e3713be" },
   { label: "WIF sent to the intake, burned on arrival", hash: "0xfa74371e97a4530b3f42342e145a148394a6861007b1b7eb7e06bf260cebd286" },
   { label: "Redemption in kind (10 WIF burned, SPY out)", hash: "0x2406285862347a30cdccde1c0aa1f5d0f0500550d3750f1c6513cca8dccd594b" },
-  { label: "Weekend buy refused (markets closed)", hash: null, note: "NothingBuyable(FeedUnusable)" },
 ];
