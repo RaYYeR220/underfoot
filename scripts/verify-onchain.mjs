@@ -22,7 +22,10 @@ import { createPublicClient, erc20Abi, formatEther, formatUnits, getAbiItem, htt
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const d = JSON.parse(readFileSync(process.env.DEPLOYMENT ?? join(root, "contracts/deployments/4663.json"), "utf8"));
-const client = createPublicClient({ chain: robinhood, transport: http(process.env.ROBINHOOD_RPC_URL) });
+const client = createPublicClient({
+  chain: robinhood,
+  transport: http(process.env.ROBINHOOD_RPC_URL, { retryCount: 8, retryDelay: 1_000 }),
+});
 
 let failed = 0;
 const ok = (label, cond, detail = "") => {
