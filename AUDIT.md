@@ -1,6 +1,6 @@
 # Self-review
 
-Before mainnet, the contracts were reviewed adversarially by someone who hadn't written them, with a proof-of-concept Foundry test for every issue run against live Robinhood Chain state. Nothing Critical or High was found. Everything Medium and Low below was fixed before deploy; each fix has a regression test that runs against mainnet state.
+Before mainnet, the contracts went through an adversarial self-review: every suspected issue got a proof-of-concept Foundry test run against live Robinhood Chain state. Nothing Critical or High was found. Everything Medium and Low below was fixed before deploy; each fix has a regression test that runs against mainnet state.
 
 | # | Severity | Finding | Fix | Regression test |
 |---|---|---|---|---|
