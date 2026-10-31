@@ -120,11 +120,11 @@ Deploy: `SPONSOR_ADDRESS=0x… forge script script/Deploy.s.sol --rpc-url robinh
 | Env (apps/web) | Purpose |
 |---|---|
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Email sign-in with an embedded wallet (enables gasless actions) |
-| `NEXT_PUBLIC_RPC_URL` / `RPC_URL` | Public and server RPC (server uses QuickNode) |
+| `NEXT_PUBLIC_RPC_URL` / `RPC_URL` / `LOGS_RPC_URL` | Browser RPC, server RPC (QuickNode in production) and an RPC without log-range caps for the burn-ledger scans |
 | `BUNDLER_URL` | ERC-4337 bundler (Pimlico); proxied server-side, only for operations our paymaster sponsors |
 | `SPONSOR_PRIVATE_KEY` | Signs sponsorships after simulation and rate limits |
 | `KEEPER_PRIVATE_KEY`, `CRON_SECRET` | Hourly keeper that settles and converts the Intake |
-| `STREAMS_SECRET` | QuickNode Streams webhook: new burns refresh the ledger instantly |
+| `STREAMS_SECRET` | Optional: a QuickNode Streams destination at `/api/streams` (HMAC-checked) that refreshes the ledger the moment a burn lands; without it the ledger refreshes every two minutes |
 
 ## Repository
 
