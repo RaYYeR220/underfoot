@@ -31,9 +31,6 @@ depth = 128
 robinhood = "${ROBINHOOD_RPC_URL}"
 robinhood_testnet = "https://rpc.testnet.chain.robinhood.com"
 
-[etherscan]
-robinhood = { key = "blockscout", url = "https://robinhoodchain.blockscout.com/api/", chain = 4663 }
-
 [profile.fork]
 match_path = "test/fork/**"
 no_match_path = "none"
