@@ -78,6 +78,32 @@ abstract contract UnderfootSeeder {
         );
     }
 
+    /// @dev Swap `amount` of `tokenIn` through the Underfoot hook pool with the UniversalRouter.
+    function _swapHookPool(UnderfootHook hook, address tokenIn, uint256 amount) internal {
+        PoolKey memory key = hook.poolKey();
+        bool zeroForOne = Currency.unwrap(key.currency0) == tokenIn;
+        Currency out = zeroForOne ? key.currency1 : key.currency0;
+        bytes memory actions = abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+        bytes[] memory p = new bytes[](3);
+        p[0] = abi.encode(
+            IV4Router.ExactInputSingleParams({
+                poolKey: key,
+                zeroForOne: zeroForOne,
+                amountIn: uint128(amount),
+                amountOutMinimum: 0,
+                minHopPriceX36: 0,
+                hookData: ""
+            })
+        );
+        p[1] = abi.encode(Currency.wrap(tokenIn), amount);
+        p[2] = abi.encode(out, uint256(0));
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(actions, p);
+        IERC20(tokenIn).approve(Config.PERMIT2, type(uint256).max);
+        IAllowanceTransfer(Config.PERMIT2).approve(tokenIn, UNIVERSAL_ROUTER, type(uint160).max, uint48(block.timestamp + 1 hours));
+        IUniversalRouter(UNIVERSAL_ROUTER).execute(hex"10", inputs, block.timestamp + 300);
+    }
+
     /// @dev Opening price: WIF per SPY from Chainlink SPY/USD and the WIF spot price.
     function _openingSqrtPrice(UnderfootLens lens) internal view returns (uint160) {
         (, int256 spyUsd,,,) = IAggregatorV3(Config.SPY_USD).latestRoundData();
