@@ -112,9 +112,14 @@ function Bridge({ onChange }: { onChange: (s: EmailSession) => void }) {
     };
   }, [address]);
 
+  // login/logout change identity on every render; publishing them directly would loop
+  const auth = useRef({ login, logout });
   useEffect(() => {
-    onChange({ ready, wallet, login: () => login(), logout });
-  }, [ready, wallet, login, logout, onChange]);
+    auth.current = { login, logout };
+  });
+  useEffect(() => {
+    onChange({ ready, wallet, login: () => auth.current.login(), logout: () => auth.current.logout() });
+  }, [ready, wallet, onChange]);
   return null;
 }
 
