@@ -93,7 +93,7 @@ contract Deploy is Script, UnderfootDeployer {
         string memory o = "deployment";
         vm.serializeUint(o, "chainId", block.chainid);
         // block.number is the parent-chain block on Arbitrum chains; ArbSys has the chain's own
-        vm.serializeUint(o, "block", IArbSys(address(100)).arbBlockNumber());
+        vm.serializeUint(o, "block", _chainBlock());
         vm.serializeAddress(o, "floor", address(d.floor));
         vm.serializeAddress(o, "ballot", address(d.ballot));
         vm.serializeAddress(o, "intake", address(d.intake));
@@ -109,5 +109,11 @@ contract Deploy is Script, UnderfootDeployer {
         console2.log("hook     ", address(d.hook));
         console2.log("paymaster", address(d.paymaster));
         console2.log("lens     ", address(d.lens));
+    }
+
+    /// @dev ArbSys knows the chain's own block number; local forks don't have the precompile.
+    function _chainBlock() internal view returns (uint256) {
+        (bool ok, bytes memory ret) = address(100).staticcall(abi.encodeCall(IArbSys.arbBlockNumber, ()));
+        return ok && ret.length == 32 ? abi.decode(ret, (uint256)) : block.number;
     }
 }

@@ -11,3 +11,6 @@ export interface Addresses {
 
 /** Robinhood Chain mainnet deployment. Written by scripts/sync-deployment.mjs. */
 export const MAINNET: Addresses | undefined = undefined;
+
+/** Chain block the deployment landed in; event scans start here. */
+export const MAINNET_DEPLOY_BLOCK: bigint | undefined = undefined;

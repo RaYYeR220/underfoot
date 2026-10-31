@@ -12,5 +12,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@underfoot/sdk": "workspace:*",
+    "viem": "^2.57.13"
   }
 }
