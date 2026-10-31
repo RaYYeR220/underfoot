@@ -57,7 +57,7 @@ export const EXTERNAL: { name: string; address: Address; note: string }[] = [
 
 export const TESTS = [
   { figure: "47", label: "local tests", note: "unit, fuzz and invariant" },
-  { figure: "28", label: "mainnet-fork tests", note: "every route, refusals, redeem, pool hook, gasless ops" },
+  { figure: "29", label: "mainnet-fork tests", note: "every route, refusals, redeem, pool hook, gasless ops" },
   { figure: "16,384", label: "invariant calls", note: "backing per WIF never decreases" },
 ];
 
@@ -78,11 +78,23 @@ export interface ProofTx {
 
 /** Real transactions on Robinhood Chain mainnet. */
 export const MAINNET_TXS: ProofTx[] = [
-  { label: "Deploy", hash: null },
-  { label: "First buy: ETH → SGOV + SPY", hash: null },
+  { label: "Deploy the floor (no owner)", hash: "0x54f6cdb7ba42e5f414d92ec93cbbd05ecc038fc99da97b69a395d10956f08971" },
+  { label: "Deploy the intake", hash: "0x4c051ea75e14a309088a8dfe202c337d6b13afcbfb5bbf36971a5d76e080c182" },
+  { label: "Open the WIF/SPY pool behind the hook", hash: "0xf5f3697aeaf893aa7eb0fce25758a78515e88511a8d848a7f941640a7fe33da4" },
+  {
+    label: "First buy: SGOV leg skipped (feed stale), all into SPY",
+    hash: "0xc7c4e2e7f327bb23be8308a43c1ec7c385c59854f903e7e7c44755cc7bb34a1e",
+    note: "LegSkipped(0, FeedUnusable) + Converted",
+  },
+  { label: "Vote for NVDA (5 WIF burned)", hash: "0x4ecffbe543368dd1fd226b2e4e4982ae1aa1379a8fd923ea8fddf51467bb59d5" },
+  {
+    label: "Gasless vote from an account with 0 ETH (100 WIF burned)",
+    hash: "0x9aaba2e91e357f2b29e6042c7c1e73e91fb8d484ef4f229e219279c26c6b2cfd",
+    note: "EIP-7702 + ERC-4337 v0.8, gas paid by the paymaster",
+  },
+  { label: "Sell WIF in the hook pool: 0.5% in SPY lands in the floor", hash: "0xd168979e4622db8f6499d2557d81f08767a2f37980108ae9797c6e76fe4fb444" },
+  { label: "Buy WIF in the hook pool: 0.5% in WIF is burned", hash: "0x9010b64bca96f1df573c4ae1a758280fba5490a46b3a3ec05bd2f1503e3713be" },
+  { label: "WIF sent to the intake, burned on arrival", hash: "0xfa74371e97a4530b3f42342e145a148394a6861007b1b7eb7e06bf260cebd286" },
+  { label: "Redemption in kind (10 WIF burned, SPY out)", hash: "0x2406285862347a30cdccde1c0aa1f5d0f0500550d3750f1c6513cca8dccd594b" },
   { label: "Weekend buy refused (markets closed)", hash: null, note: "NothingBuyable(FeedUnusable)" },
-  { label: "Vote (burns WIF)", hash: null },
-  { label: "Redemption in kind", hash: null },
-  { label: "Gasless redemption via the paymaster", hash: null },
-  { label: "Swap on the WIF/SPY pool", hash: null },
 ];

@@ -6,8 +6,8 @@ Underfoot is a contract with no owner that holds a basket of Robinhood Chain Sto
 
 Most $WIF utilities burn the token and call it a flywheel. A burn makes WIF scarcer; it doesn't give anyone a reason to come back, and it works the same with any token. Underfoot makes WIF the only key to a growing basket of real assets, and turns every burn on the chain into backing for the holders who stay.
 
-- **Live app:** _added at launch_
-- **Contracts (verified):** see [Deployment](#deployment)
+- **Live app:** https://underfoot-brown.vercel.app · **MCP:** https://underfoot-brown.vercel.app/api/mcp
+- **Contracts (verified, no owner):** see [Deployment](#deployment)
 - **Review in five minutes:** [REVIEW.md](REVIEW.md) · **What we claim and how to check it:** [CLAIMS.md](CLAIMS.md) · **Self-review:** [AUDIT.md](AUDIT.md)
 
 ---
@@ -81,7 +81,29 @@ const calls = redeemCalls(MAINNET!, { amount: parseEther("250000"), to: me }); /
 
 ## Deployment
 
-Robinhood Chain mainnet (4663). _Addresses, verification links and launch transactions are added here at launch._
+Robinhood Chain mainnet (4663), block 102,641,510. Every contract is source-verified on [Sourcify](https://sourcify.dev/#/lookup/0x127946edE935cd492a35df92cB7e75668c42E326) (full match), has no owner, and is checked by `pnpm verify:onchain`.
+
+| Contract | Address |
+|---|---|
+| Underfoot (the floor) | [`0x127946edE935cd492a35df92cB7e75668c42E326`](https://robinhoodchain.blockscout.com/address/0x127946edE935cd492a35df92cB7e75668c42E326) |
+| Ballot | [`0x2fE9cf250d0a5b368f7BF6eeeA1E0923553BAEad`](https://robinhoodchain.blockscout.com/address/0x2fE9cf250d0a5b368f7BF6eeeA1E0923553BAEad) |
+| Intake | [`0x165EAC746bed0bB0CCFBAED05452E1a0274b4C5D`](https://robinhoodchain.blockscout.com/address/0x165EAC746bed0bB0CCFBAED05452E1a0274b4C5D) |
+| UnderfootHook (WIF/SPY, v4) | [`0x54Ead89e8aC38a818D9ffF9C6217D45A01f66044`](https://robinhoodchain.blockscout.com/address/0x54Ead89e8aC38a818D9ffF9C6217D45A01f66044) |
+| UnderfootPaymaster (ERC-4337 v0.8) | [`0xDfF54b91ADF8f69D8CE13E1b2bCa8b31b36fFbc8`](https://robinhoodchain.blockscout.com/address/0xDfF54b91ADF8f69D8CE13E1b2bCa8b31b36fFbc8) |
+| UnderfootLens | [`0x1032326f0A7397DBeC75A2e5Ad2B2AC1D68D0F87`](https://robinhoodchain.blockscout.com/address/0x1032326f0A7397DBeC75A2e5Ad2B2AC1D68D0F87) |
+
+Launch transactions, all on mainnet:
+
+- Open the WIF/SPY pool behind the hook through the official PositionManager — [tx](https://robinhoodchain.blockscout.com/tx/0xf5f3697aeaf893aa7eb0fce25758a78515e88511a8d848a7f941640a7fe33da4)
+- First buy: the SGOV leg was **skipped** because its feed was stale, so the whole amount went into SPY — [tx](https://robinhoodchain.blockscout.com/tx/0xc7c4e2e7f327bb23be8308a43c1ec7c385c59854f903e7e7c44755cc7bb34a1e)
+- Vote for NVDA, 5 WIF burned — [tx](https://robinhoodchain.blockscout.com/tx/0x4ecffbe543368dd1fd226b2e4e4982ae1aa1379a8fd923ea8fddf51467bb59d5)
+- **Gasless vote** from an account holding 0 ETH: EIP-7702 delegation + ERC-4337 v0.8 user operation, gas paid by the paymaster, 100 WIF burned — [tx](https://robinhoodchain.blockscout.com/tx/0x9aaba2e91e357f2b29e6042c7c1e73e91fb8d484ef4f229e219279c26c6b2cfd)
+- Sell WIF through the hook pool: 0.5% of the SPY out went into the floor — [tx](https://robinhoodchain.blockscout.com/tx/0xd168979e4622db8f6499d2557d81f08767a2f37980108ae9797c6e76fe4fb444)
+- Buy WIF through the hook pool: 0.5% of the WIF out was burned — [tx](https://robinhoodchain.blockscout.com/tx/0x9010b64bca96f1df573c4ae1a758280fba5490a46b3a3ec05bd2f1503e3713be)
+- WIF sent to the Intake, burned on arrival — [tx](https://robinhoodchain.blockscout.com/tx/0xfa74371e97a4530b3f42342e145a148394a6861007b1b7eb7e06bf260cebd286)
+- Redemption: 10 WIF burned, SPY paid out in kind — [tx](https://robinhoodchain.blockscout.com/tx/0x2406285862347a30cdccde1c0aa1f5d0f0500550d3750f1c6513cca8dccd594b)
+
+Reproduce any of them with `contracts/script/Demo.s.sol` (`ACTION=vote|redeem|sell-wif|buy-back|fund-wif|buy-wif`) or `scripts/sponsored-vote.mjs` for the gasless path.
 
 ## Run it
 
